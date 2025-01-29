@@ -20,11 +20,12 @@ jobs:
     - name: Generate Matrix
       id: generate-matrix
       run: |
-        echo 'repos=$(jq -s "[.[][]]" repos/repos*.json)' >> $GITHUB_OUTPUT
+        repos=$(jq -s '[.[][]]' repos/repos*.json)
+        echo "::set-output name=repos::$repos"
 
     - name: Set builddate
       id: generate-builddate
-      run: echo 'builddate=$(date +%Y%m%d)' >> $GITHUB_OUTPUT
+      run: echo "::set-output name=builddate::$(date +%Y%m%d)"
 
   Build-Kernel:
     name: Build kernel
@@ -33,7 +34,7 @@ jobs:
       - Set-repos
     strategy:
       matrix:
-        repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
+        repos: ${{ fromJson(needs.Set-repos.outputs.repos) }}
     env:
       WORKSPACE: ${{ github.workspace }}
       builddate: "${{ needs.Set-repos.outputs.builddate }}"
@@ -73,3 +74,4 @@ jobs:
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v3
+
