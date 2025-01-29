@@ -1,0 +1,75 @@
+name: Build Coral Kernel
+
+env:
+  OUT_DIR: "${{ github.workspace }}/out"
+
+on:
+  workflow_dispatch:
+
+jobs:
+  Set-repos:
+    name: Parse repos.json
+    runs-on: ubuntu-latest
+    outputs:
+      repos: ${{ steps.generate-matrix.outputs.repos }}
+      builddate: ${{ steps.generate-builddate.outputs.builddate }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Generate Matrix
+      id: generate-matrix
+      run: |
+        echo 'repos=$(jq -s "[.[][]]" repos/repos*.json)' >> $GITHUB_OUTPUT
+
+    - name: Set builddate
+      id: generate-builddate
+      run: echo 'builddate=$(date +%Y%m%d)' >> $GITHUB_OUTPUT
+
+  Build-Kernel:
+    name: Build kernel
+    runs-on: ubuntu-latest
+    needs:
+      - Set-repos
+    strategy:
+      matrix:
+        repos: ${{ fromJSON(needs.Set-repos.outputs.repos) }}
+    env:
+      WORKSPACE: ${{ github.workspace }}
+      builddate: "${{ needs.Set-repos.outputs.builddate }}"
+      KERNEL_NAME: ${{ matrix.repos.kernelSource.name }}
+      KERNEL_REPO: ${{ matrix.repos.kernelSource.repo }}
+      KERNEL_BRANCH: ${{ matrix.repos.kernelSource.branch }}
+      KERNEL_DEVICE: ${{ matrix.repos.kernelSource.device }}
+      DEFCONFIG_NAME: ${{ matrix.repos.kernelSource.defconfig }}
+      withKernelSU: ${{ matrix.repos.withKernelSU }}
+      withSUSFS: ${{ matrix.repos.withSUSFS }}
+      useAnykernel: ${{ matrix.repos.AnyKernel3.use }}
+      release: ${{ matrix.repos.AnyKernel3.release }}
+
+    steps:
+    - name: Install prerequisites
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y build-essential bc gcc-aarch64-linux-gnu gcc-arm-linux-gnueabi libssl-dev libfl-dev jq
+
+    - name: Setup AnyKernel3
+      env:
+        params: "${{ toJSON(matrix.repos.AnyKernel3) }}"
+      run: |
+        ANYKERNEL_REPO=$(echo "$params" | jq -r ".repo")
+        ANYKERNEL_BRANCH=$(echo "$params" | jq -r ".branch")
+        git clone --depth=1 -b "$ANYKERNEL_BRANCH" "$ANYKERNEL_REPO" AnyKernel3
+
+    - name: Clone kernel source
+      run: |
+        git clone --depth=1 -b "${{ env.KERNEL_BRANCH }}" "${{ env.KERNEL_REPO }}" "${{ env.KERNEL_NAME }}"
+
+    - name: Build kernel
+      working-directory: ${{ env.KERNEL_NAME }}
+      run: |
+        make O=${{ env.OUT_DIR }} ARCH=${{ matrix.repos.params.ARCH }} ${DEFCONFIG_NAME}
+        make O=${{ env.OUT_DIR }} ARCH=${{ matrix.repos.params.ARCH }} -j$(nproc)
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
