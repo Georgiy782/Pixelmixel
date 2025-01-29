@@ -1,0 +1,43 @@
+{
+  "kernelSource": {
+    "name": "CoralKernel",
+    "repo": "https://android.googlesource.com/kernel/msm",
+    "branch": "android-msm-coral-4.14-android13",
+    "device": "coral",
+    "defconfig": "floral_defconfig"
+  },
+  "withKernelSU": true,
+  "withSUSFS": true,
+  "toolchains": [
+    {
+      "repo": "https://gitlab.com/ThankYouMario/android_prebuilts_clang-standalone",
+      "branch": "12",
+      "name": "clang-r450784d",
+      "binPath": ["./bin"]
+    }
+  ],
+  "params": {
+    "ARCH": "arm64",
+    "CC": "clang-r450784d/bin/clang",
+    "externalCommand": {
+      "CROSS_COMPILE": "clang-r450784d/bin/aarch64-linux-android-",
+      "CROSS_COMPILE_ARM32": "clang-r450784d/bin/arm-linux-androideabi-",
+      "LD": "clang-r450784d/bin/ld.lld",
+      "AR": "clang-r450784d/bin/llvm-ar",
+      "NM": "clang-r450784d/bin/llvm-nm",
+      "OBJCOPY": "clang-r450784d/bin/llvm-objcopy",
+      "OBJDUMP": "clang-r450784d/bin/llvm-objdump",
+      "READELF": "clang-r450784d/bin/llvm-readelf",
+      "OBJSIZE": "clang-r450784d/bin/llvm-size",
+      "STRIP": "clang-r450784d/bin/llvm-strip",
+      "LLVM_IAS": "1",
+      "LLVM": "1"
+    },
+    "AnyKernel3": {
+      "use": true,
+      "release": true,
+      "repo": "https://github.com/osm0sis/AnyKernel3",
+      "branch": "master"
+    }
+  }
+}
